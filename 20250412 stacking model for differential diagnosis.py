@@ -19,16 +19,16 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 
-# 设置字体和字体大小
-mpl.rcParams['font.size'] = 10  # 控制所有字体的默认大小
-mpl.rcParams['font.family'] = 'Calibri'  # 或 'SimHei' (黑体中文)
 
-# 设置随机种子
+mpl.rcParams['font.size'] = 10 
+mpl.rcParams['font.family'] = 'Calibri'  
+
+
 def set_random_seed(seed=995):
     random.seed(seed)
     np.random.seed(seed)
 
-# 模型评估函数
+
 def evaluate_ensemble(y_true, proba_pred, threshold=0.5, dataset_name=""):
     y_pred = (proba_pred >= threshold).astype(int)
     accuracy = accuracy_score(y_true, y_pred)
@@ -43,7 +43,7 @@ def evaluate_ensemble(y_true, proba_pred, threshold=0.5, dataset_name=""):
 
 set_random_seed(995)
 
-# 读取数据
+
 train_data = pd.read_excel("train_data_clear1.xlsx").dropna()
 test_data = pd.read_excel("test_data_clear1.xlsx").dropna()
 
@@ -57,7 +57,7 @@ scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train_full)
 X_test_scaled = scaler.transform(X_test_full)
 
-# 特征选择
+
 C_val = 0.9
 n_selected_features = 60
 lr = LogisticRegression(solver='liblinear', penalty='l1', C=C_val, random_state=995)
@@ -67,7 +67,7 @@ coef_mask = selector.support_
 X_train = X_train_scaled[:, coef_mask]
 X_test = X_test_scaled[:, coef_mask]
 
-# 模型参数
+
 catboost_params = {
     'iterations': 100,
     'depth': 10,
@@ -139,7 +139,7 @@ print(f"Average Recall: {np.mean(ensemble_metrics['recall']):.4f}")
 print(f"Average F1-Score: {np.mean(ensemble_metrics['f1']):.4f}")
 print(f"Average ROC-AUC: {np.mean(ensemble_metrics['auc']):.5f}")
 
-# Test Set 预测
+
 final_model_xgb = xgb.XGBClassifier(**xgboost_params)
 final_model_cat = CatBoostClassifier(**catboost_params)
 final_model_xgb.fit(X_train, y_train)
@@ -153,10 +153,10 @@ test_proba_final = meta_model.predict_proba(test_meta_input)[:, 1]
 print("\n=== Final Evaluation on Test Set (Stacking) ===")
 evaluate_ensemble(y_test, test_proba_final, dataset_name="Test Set")
 
-# === SHAP 分析：解释原始特征对最终预测的影响 ===
+
 print("\n🎯 Computing SHAP values for the entire stacking model (based on raw features)...")
 
-# 选取部分样本用于解释（加快速度）
+
 X_explain = X_train[:97]
 
 def stacking_predict_proba(X):
@@ -165,19 +165,19 @@ def stacking_predict_proba(X):
     meta_input = np.vstack((proba_xgb, proba_cat)).T
     return meta_model.predict_proba(meta_input)[:, 1]
 
-# 用于解释模型的输入
+
 explainer = shap.KernelExplainer(stacking_predict_proba, X_explain)
 
-# 获取 SHAP 值
+
 shap_values = explainer.shap_values(X_explain)
 
-# 获取被 RFE 选择的特征名
+
 selected_feature_names = [feature for feature, keep in zip(feature_cols, coef_mask) if keep]
 
-# 用正确数量的特征名构建 DataFrame
+
 X_explain_df = pd.DataFrame(X_explain, columns=selected_feature_names)
 
-# SHAP柱状图：只显示前10个特征
+
 plt.xlim(-0.2, 0.2)
 shap.summary_plot(shap_values, X_explain_df, plot_type="dot", max_display=10)
 
@@ -185,20 +185,5 @@ plt.xlim(-0.1, 0.1)
 shap.summary_plot(shap_values, X_explain_df, plot_type="bar", max_display=10)
 
 
-#
-# import numpy as np
-#
-# # 取 shap_values 平均绝对值，作为特征重要性
-# mean_abs_shap = np.abs(shap_values).mean(axis=0)
-#
-# # 获取前10个特征的索引
-# top_indices = np.argsort(mean_abs_shap)[-10:][::-1]
-#
-# # 提取对应 SHAP 值和特征名
-# top_shap_values = shap_values[:, top_indices]
-# top_feature_names = [selected_feature_names[i] for i in top_indices]
-#
-# # 绘制前10个特征的 bar plot
-# shap.bar_plot(top_shap_values.mean(axis=0), feature_names=top_feature_names)
 
 
