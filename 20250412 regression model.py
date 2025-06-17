@@ -16,9 +16,9 @@ file_path = 'E:/研三/MSA EEG/1225结果/20250219相关性分析/随访20250401
 data = pd.read_excel(file_path)
 
 
-data_clean = data.dropna()  # 删除缺失值
-y_clean = data_clean.iloc[:, 6]  # 目标变量（疾病进展速度）
-X_clean = data_clean.iloc[:, 7:]  # EEG 特征
+data_clean = data.dropna() 
+y_clean = data_clean.iloc[:, 6]  
+X_clean = data_clean.iloc[:, 7:]  
 
 
 scaler_X = StandardScaler()
